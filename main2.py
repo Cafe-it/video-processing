@@ -33,36 +33,43 @@ def extract_seat_boxes(image_path, debug=False):
     
     # 허프 변환으로 직선 검출
     lines = cv2.HoughLinesP(edges, 1, np.pi/180, threshold=30, minLineLength=20, maxLineGap=10)
-    
+
     # 방법 1: 윤곽선 기반 사각형 검출
     contours, _ = cv2.findContours(combined_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    print(len(lines))
-    print(len(contours))
+    print('lines', len(lines))
+    print('contours', len(contours))
     rects = []
+    i = 0
+    j = 0
     for contour in contours:
         # 윤곽선 근사화
         epsilon = 0.03 * cv2.arcLength(contour, True)
         approx = cv2.approxPolyDP(contour, epsilon, True)
-        
+
+        print(j, ' ', contour)
+        j+=1
         # 사각형 조건 확인
-        if len(approx) >= 4:  # 4개 이상의 꼭짓점
+        if len(approx) == 4:  # 4개 이상의 꼭짓점
             x, y, w, h = cv2.boundingRect(contour)
             
             # 크기 필터링 (너무 작거나 큰 것 제외)
-            if 20 < w < 500 and 20 < h < 500:
+            if 50 < w and 50 < h:
                 aspect_ratio = w / h
                 area = cv2.contourArea(contour)
                 
                 # 종횡비와 면적 조건
                 if 0.3 < aspect_ratio < 3.0 and area > 50:
                     rects.append((x, y, w, h))
-    
+                    print(i, ' : ', x, y, w, h)
+                    i+=1
+
     print(len(rects))
     
 
     
     # 디버그 모드에서 결과 시각화
     if debug:
+        print('debug')
         fig, axes = plt.subplots(2, 2, figsize=(15, 12))
         
         # 원본 이미지
@@ -83,6 +90,7 @@ def extract_seat_boxes(image_path, debug=False):
         # 검출된 사각형
         result_img = img.copy()
         for i, (x, y, w, h) in enumerate(rects):
+            print(rects[i])
             cv2.rectangle(result_img, (x, y), (x + w, y + h), (0, 255, 0), 2)
             cv2.putText(result_img, f'{i+1}', (x + 5, y + 20), 
                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
@@ -135,11 +143,24 @@ def draw_boxes_on_image(image_path, boxes, output_path):
 
     cv2.imwrite(output_path, img)
 
+#def image_processing(coordinates):
+    
+
 # 사용 예제
 if __name__ == "__main__":
-    image_path = "C:\\Users\\wjdtm\\Desktop\\katec\\katec\\grace_blue_thin_line.jpg"
-    result_path = "C:\\Users\\wjdtm\\Desktop\\katec\\katec\\grace_with_boxes.jpg"
+
+    input_seats = "10" # <- 파라미터로 넘겨진 좌석 총 갯수. 인풋으로 받아야 함.
+    image_path = "/Users/icecoff22/katec/video-processing/katec/IMG_0110.jpg"
+    result_path = "/Users/icecoff22/katec/video-processing/katec/grace_with_boxes.jpg"
 
     coordinates = get_seat_coordinates(image_path, debug=True)
+    
+    # 좌석 갯수가 들어온 입력 갯수와 맞지 않으면.
+    #if len(coordinates) is not input_seats:
+        #TODO : 맞지않을 때 리턴 값 상의하기.
+    #    return -1 
+    
+    #image_processing(coordinates)
+
     draw_boxes_on_image(image_path, coordinates, result_path)
     print(f"결과 이미지 저장 완료: {result_path}")
